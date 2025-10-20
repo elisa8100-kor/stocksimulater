@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>주식 시뮬레이터 · 위험게이트(계정ID 확인만) / 로그인/OTK/문의/시나리오(데모)</title>
+<style>
+:root{--bg:#0b0c10;--card:#151821;--muted:#99a3b3;--text:#e9edf3;--brand:#5b8cff;--accent:#2ee59d;--danger:#ff4d61;--grid:#232634;--border:#222636}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#0a0b0f,#0c1020 40%,#0a0b0f 100%);color:var(--text);font:14px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+.container{max-width:1200px;margin:24px auto;padding:0 16px}
+h1{margin:0 0 10px;font-size:22px}
+.header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{font-size:12px;padding:4px 8px;border:1px solid #2b3042;border-radius:999px;color:#b7c2d9;background:#0e1220}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.card{background:linear-gradient(180deg,#111526,#0f1424);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);margin-bottom:14px}
+.card h2{margin:0 0 8px;font-size:16px;color:#dbe4ff}
+.input,.select,textarea{background:#0f1322;color:var(--text);border:1px solid #2b3042;border-radius:10px;padding:10px 12px;outline:none;min-width:120px}
+.input:focus,.select:focus,textarea:focus{border-color:#3b64ff}
+.btn{border:1px solid #2b3042;background:#121830;color:#e9edf3;padding:10px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:#3b64ff}
+.btn.brand{background:linear-gradient(180deg,#4f73ff,#3156ff);border-color:#3156ff;color:#fff}
+.btn.accent{background:linear-gradient(180deg,#2ee59d,#15c57e);border:none;color:#0a0b0f}
+.btn.danger{background:linear-gradient(180deg,#ff5f74,#ff2d49);border:none;color:#fff}
+.small{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #20263a;padding:8px 6px;text-align:right}
+.table th:first-child,.table td:first-child{text-align:left}
+.table tr:hover{background:#0e1220}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi .box{background:#0f1322;border:1px solid #2b3042;border-radius:12px;padding:12px}
+.kpi .label{font-size:11px;color:#9aa6bf}
+.kpi .value{font-size:18px;margin-top:4px}
+.flex{display:flex;gap:8px;flex-wrap:wrap}
+.sep{border:none;border-top:1px dashed #26304a;margin:10px 0}
+.canvas-wrap{position:relative;height:220px}
+canvas{width:100%;height:220px;background:repeating-linear-gradient(0deg,var(--grid) 0 1px,transparent 1px 26px)}
+.help{font-size:13px;color:#9aa6bf;margin-left:6px}
+#cmdlog{background:#0f1322;border:1px solid #2b3042;border-radius:10px;padding:10px;height:120px;overflow:auto;white-space:pre-wrap}
+kbd{background:#0f1322;border:1px solid #2b3042;border-radius:6px;padding:2px 6px;color:#b7c2d9}
+.status{display:flex;gap:6px;align-items:center}
+.pill{border:1px solid #2b3042;border-radius:999px;padding:3px 8px;font-size:11px;color:#9fb3d9}
+.pill.green{border-color:#1f6f4a;color:#a6f3cd}
+.pill.red{border-color:#7f2230;color:#ffb3be}
+.hidden{display:none}
+.toast{position:fixed;right:16px;bottom:16px;background:#10162a;border:1px solid #2b3042;color:#e9edf3;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transform:translateY(12px);transition:all .25s}
+.toast.show{opacity:1;transform:translateY(0)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
+.modal .dialog{background:#12162a;border:1px solid #2b3042;border-radius:14px;max-width:520px;width:100%;padding:16px}
+.dialog h3{margin:0 0 8px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.warn{color:#ffb3be}
+.success{color:#a6f3cd}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>주식 시뮬레이터(데모)</h1>
+    <span class="badge">로그인/락/복구</span>
+    <span class="badge">원타임키(OTK)</span>
+    <span class="badge">영구 관리자</span>
+    <span class="badge">위험게이트: 계정ID 확인만</span>
+    <span class="badge">문의</span>
+    <span class="badge">시나리오 70%</span>
+  </div>
+
+  <!-- 로그인/가입 -->
+  <div id="authView" class="grid">
+    <div class="card">
+      <h2>로그인</h2>
+      <div class="row">
+        <label>계정ID<br><input id="loginId" class="input" placeholder="account_id"></label>
+        <label>비밀번호<br><input id="loginPw" type="password" class="input" placeholder="4~8자"></label>
+        <button id="btnLogin" class="btn brand">로그인</button>
+        <button id="btnOpenHelp" class="btn">문의하기</button>
+      </div>
+      <p id="loginStatus" class="small"></p>
+      <div id="lockBanner" class="card small hidden" style="background:#101429">
+        <div><strong>보안 경고</strong> — 비정상적인 로그인 시도가 감지되었습니다. 해킹 가능성이 있어 관리자에게 문의하시기 바랍니다.</div>
+        <div class="row" style="margin-top:8px">
+          <button id="btnOpenRecovery" class="btn accent">복구 PIN으로 해제</button>
+          <button class="btn" id="btnOpenHelp2">문의하기</button>
+          <span class="help" id="lockTimer"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>회원가입</h2>
+      <div class="row">
+        <label>계정ID(영문/숫자/_ 4~16)<br><input id="regId" class="input"></label>
+        <label>닉네임(2~16)<br><input id="regNick" class="input"></label>
+        <label>비밀번호(4~8)<br><input id="regPw" type="password" class="input"></label>
+        <button id="btnRegister" class="btn brand">가입</button>
+      </div>
+      <p class="small">비속어 금지, 연속/반복 패턴(1111, 1234 등) 금지.</p>
+    </div>
+  </div>
+
+  <!-- 앱 -->
+  <div id="appView" class="hidden">
+    <div class="card status">
+      <span id="who" class="pill"></span>
+      <span id="rolePill" class="pill"></span>
+      <button id="btnLogout" class="btn">로그아웃</button>
+      <button id="btnHelpIn" class="btn">문의하기</button>
+      <div style="flex:1"></div>
+      <span class="small">관리자 트리거: <span class="mono">HA2563441234567890130202</span></span>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>주문</h2>
+          <div class="row">
+            <label>심볼<br><input id="sym" class="input" value="AAPL"></label>
+            <label>수량<br><input id="qty" type="number" min="1" class="input" value="10"></label>
+            <label>매수/매도<br>
+              <select id="side" class="select"><option value="buy">매수</option><option value="sell">매도</option></select>
+            </label>
+            <label>유형<br>
+              <select id="otype" class="select"><option value="market">시장가</option><option value="limit">지정가</option></select>
+            </label>
+            <label>지정가<br><input id="lpx" type="number" class="input" placeholder="-"></label>
+            <button id="place" class="btn brand">주문하기</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label>수수료(bps)<br><input id="fee" type="number" class="input" value="10"></label>
+            <label>슬리피지(bps)<br><input id="slip" type="number" class="input" value="5"></label>
+            <label>시나리오<br>
+              <select id="scenario" class="select">
+                <option value="training">훈련(70%)</option>
+                <option value="normal">일반(50%)</option>
+                <option value="learning">학습(30%)</option>
+              </select>
+            </label>
+            <button id="next" class="btn accent">다음 날 ▶</button>
+            <button id="reset" class="btn danger">초기화</button>
+          </div>
+          <p class="small">시장가: 다음날 시가 체결 · 지정가: 다음날 시가 조건 만족 시 체결 · 수수료/슬리피지 반영.</p>
+          <hr class="sep">
+          <div class="kpi">
+            <div class="box"><div class="label">현금</div><div id="kpi-cash" class="value">$0</div></div>
+            <div class="box"><div class="label">총자산</div><div id="kpi-eq" class="value">$0</div></div>
+            <div class="box"><div class="label">CAGR</div><div id="kpi-cagr" class="value">—</div></div>
+            <div class="box"><div class="label">최대낙폭</div><div id="kpi-dd" class="value">—</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>에쿼티 커브</h2>
+          <div class="canvas-wrap"><canvas id="chart" width="1000" height="220"></canvas></div>
+          <div id="tags" class="flex" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h2>명령어</h2>
+          <div class="row">
+            <input id="cmd" class="input" style="flex:1" placeholder="예) buy AAPL 5 market / sell TSLA all / next 3 / set fee 8 / help">
+            <button id="run" class="btn brand">실행</button>
+          </div>
+          <div id="cmdlog" style="margin-top:8px"></div>
+          <p class="small">단축: <kbd>B1</kbd> 매수, <kbd>S1</kbd> 매도, <kbd>N5</kbd> 5일 진행, <kbd>H1</kbd> 도움말. 관리자: <kbd>admin off</kbd>.</p>
+        </div>
+
+        <div class="card">
+          <h2>보유 포지션</h2>
+          <table class="table" id="pos"><thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가손익</th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <div class="card">
+          <h2>체결 내역</h2>
+          <table class="table" id="fills"><thead><tr><th>일자</th><th>종목</th><th>사이드</th><th>수량</th><th>체결가</th><th>수수료</th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <div class="card">
+          <h2>가격(일봉)</h2>
+          <table class="table" id="px"><thead><tr><th>종목</th><th>시가</th><th>고가</th><th>저가</th><th>종가</th></tr></thead><tbody></tbody></table>
+          <p class="small">심볼별 시드 랜덤 워크 + 점프/이벤트. 새 종목 주문 시 자동 생성.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>관리자 & OTK</h2>
+          <div class="row">
+            <input id="adminTrigger" class="input mono" placeholder="관리자 트리거 (HA256...)">
+            <button id="btnAdminTrigger" class="btn">전환</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input id="otk" class="input mono" placeholder="원타임 키 (ADMIN2025243295+X)">
+            <button id="btnOTK" class="btn">임시 관리자</button>
+          </div>
+          <p class="small">OTK: 유효 20분 / 1회성. X = (당일 고유 관리자 수 × 3.14) 반올림.</p>
+          <hr class="sep">
+          <div id="adminPanel" class="hidden">
+            <div class="status" style="margin-bottom:8px">
+              <span class="pill green">PERMANENT ADMIN</span>
+              <span id="todayAdminCount" class="pill">오늘 고유 관리자 수: —</span>
+            </div>
+            <div class="row">
+              <button id="btnRiskReset" class="btn danger">[위험] 전체 초기화</button>
+              <button id="btnRiskDeleteAccount" class="btn danger">[위험] 계정 삭제</button>
+              <button id="btnRiskForcePrice" class="btn">[위험] 주가 강제(이 PC만)</button>
+            </div>
+            <p class="small">위험 명령은 승인 없이 <b>계정ID 정확 입력 + 10초 유예</b> 후 실행됩니다.</p>
+          </div>
+          <div id="tempPanel" class="hidden">
+            <span class="pill">TEMP ADMIN(20분)</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>도전 과제 & 포인트(데모)</h2>
+          <div class="row">
+            <button id="btnCheckAch" class="btn">업적 평가</button>
+            <button id="btnShowPoints" class="btn">포인트 보기</button>
+            <button id="btnUnlockScenario" class="btn">포인트로 시나리오 해금</button>
+          </div>
+          <p class="small">예: 총자산 1200↑, MDD≤5% 달성 시 포인트 지급.</p>
+        </div>
+
+        <div class="card">
+          <h2>문의하기</h2>
+          <div class="row">
+            <select id="helpCat" class="select">
+              <option>로그인/복구</option><option>계정/비밀번호</option><option>포인트/업적</option><option>시나리오/이벤트</option><option>버그/오류</option><option>제안/피드백</option>
+            </select>
+            <input id="helpTitle" class="input" placeholder="제목">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <textarea id="helpBody" class="input" style="min-height:90px;flex:1" placeholder="상황을 자세히 적어주세요."></textarea>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label><input type="checkbox" id="helpMeta" checked> 자동 메타(세션/브라우저/최근로그) 첨부 동의</label>
+            <button id="btnSubmitTicket" class="btn brand">문의 제출</button>
+          </div>
+          <div id="ticketsBox" class="small" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 위험 명령 모달(계정ID만 확인) -->
+<div id="riskModal" class="modal">
+  <div class="dialog">
+    <h3>위험 명령 확인</h3>
+    <p id="riskSummary" class="small">이 작업은 시스템에 큰 영향을 줄 수 있습니다. 계속하려면 현재 로그인한 계정ID를 정확히 입력하세요. 실행 전 10초 유예가 있습니다.</p>
+    <div class="row">
+      <label>계정ID 재입력<br><input id="riskAccount" class="input" placeholder="현재 로그인한 계정ID"></label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="riskConfirm" class="btn danger">실행(10초 유예)</button>
+      <button id="riskCancel" class="btn">취소</button>
+      <span id="riskCountdown" class="help"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 복구 PIN 모달 -->
+<div id="recoveryModal" class="modal">
+  <div class="dialog">
+    <h3>복구 PIN</h3>
+    <p class="small">하드 락 해제를 위해 등록된 복구 PIN(6~8자리)을 입력하세요.</p>
+    <div class="row">
+      <input id="pinInput" class="input" placeholder="6~8자리 숫자">
+      <button id="pinVerify" class="btn brand">해제</button>
+      <button id="pinClose" class="btn">닫기</button>
+    </div>
+    <p id="pinMsg" class="small"></p>
+  </div>
+</div>
+
+<!-- 문의 모달(로그인 화면) -->
+<div id="helpModal" class="modal">
+  <div class="dialog">
+    <h3>문의하기</h3>
+    <div class="row">
+      <select id="mCat" class="select"><option>로그인/복구</option><option>계정/비밀번호</option><option>기타</option></select>
+      <input id="mTitle" class="input" placeholder="제목">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <textarea id="mBody" class="input" style="min-height:90px;flex:1" placeholder="상황을 자세히 적어주세요."></textarea>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label><input type="checkbox" id="mMeta" checked> 자동 메타 첨부 동의</label>
+      <button id="mSubmit" class="btn brand">제출</button>
+      <button id="mClose" class="btn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ===== 유틸 ===== */
+const $=s=>document.querySelector(s);
+const fmt=n=>(n>=0?'':'-')+'$'+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
+const fnum=n=>Number(n).toLocaleString(undefined,{maximumFractionDigits:2});
+const todayStr=(d=new Date())=>new Date(d).toISOString().slice(0,10);
+const nowTs=()=>Date.now();
+function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2500); }
+function hash(s){ let h=0; for(let i=0;i<s.length;i++) h=((h<<5)-h+s.charCodeAt(i))|0; return 'h'+(h>>>0).toString(16); }
+
+/* ===== 저장소 ===== */
+const DB={ get(k,def){try{const v=localStorage.getItem(k); return v?JSON.parse(v):def}catch(e){return def}}, set(k,v){localStorage.setItem(k,JSON.stringify(v))}, del(k){localStorage.removeItem(k)} };
+
+/* ===== 금칙/약한 비번 ===== */
+const badWords=['bad','shit','fuck','욕','바보'];
+const weakPw=pw=>{
+  if(!pw||pw.length<4||pw.length>8) return true;
+  const repeats=/^(.)\1{3,}$/.test(pw);
+  const seq='0123456789abcdefghijklmnopqrstuvwxyz';
+  const lower=pw.toLowerCase();
+  const sequential = seq.includes(lower) || seq.split('').reverse().join('').includes(lower);
+  return repeats||sequential;
+};
+const hasBadWord=s=>!!s&&badWords.some(w=>s.toLowerCase().includes(w));
+
+/* ===== 인증/세션/락/복구 ===== */
+const AUTH={
+  usersKey:'auth.users', failKey:'auth.fail', pinKey:'auth.pin', sessKey:'auth.session',
+  users(){return DB.get(this.usersKey,[])}, saveUsers(u){DB.set(this.usersKey,u)},
+  session(){return DB.get(this.sessKey,null)}, setSession(s){DB.set(this.sessKey,s)}, clearSession(){DB.del(this.sessKey)},
+  findUserByAccount(id){return this.users().find(u=>u.accountId===id)},
+  register({accountId,nickname,password}){
+    if(!/^[A-Za-z0-9_]{4,16}$/.test(accountId)) return {ok:false,msg:'계정ID 형식 불가'};
+    if(hasBadWord(accountId)||hasBadWord(nickname)) return {ok:false,msg:'비속어 금지'};
+    if(!nickname||nickname.length<2||nickname.length>16) return {ok:false,msg:'닉네임 길이 불가'};
+    if(weakPw(password)) return {ok:false,msg:'약한 비밀번호'};
+    if(this.findUserByAccount(accountId)) return {ok:false,msg:'이미 존재하는 계정'};
+    const u={id:'u'+Date.now(),accountId,nickname,role:'USER',pwd_hash:hash(password),created_at:nowTs()};
+    const all=this.users(); all.push(u); this.saveUsers(all); return {ok:true};
+  },
+  _fail(){return DB.get(this.failKey,{})}, _saveFail(x){DB.set(this.failKey,x)},
+  failInfo(id){return (this._fail()[id]||{count:0,last_ts:0,cool_until:0,hard_until:0})},
+  setFail(id,info){const f=this._fail(); f[id]=info; this._saveFail(f)},
+  addFail(id){ const f=this.failInfo(id); f.count=(f.count||0)+1; f.last_ts=nowTs();
+    if(f.count>=30){ f.hard_until=nowTs()+5*60*1000; } else if(f.count>=16){ f.cool_until=nowTs()+60*1000; } else if(f.count>=6){ f.cool_until=nowTs()+30*1000; }
+    this.setFail(id,f); return f; },
+  resetFail(id){ const f=this._fail(); delete f[id]; this._saveFail(f); },
+  setPIN(uid,pin){ if(!/^\d{6,8}$/.test(pin)) return {ok:false,msg:'PIN 6~8자리'}; const pins=DB.get(this.pinKey,{}); pins[uid]=hash(pin); DB.set(this.pinKey,pins); return {ok:true}; },
+  verifyPIN(uid,pin){ const pins=DB.get(this.pinKey,{}); return pins[uid] && pins[uid]===hash(pin); },
+  login({accountId,password}){
+    const fi=this.failInfo(accountId);
+    if(fi.hard_until && fi.hard_until>nowTs()) return {ok:false,hard:true,until:fi.hard_until};
+    if(fi.cool_until && fi.cool_until>nowTs()) return {ok:false,cool:true,until:fi.cool_until};
+    const u=this.findUserByAccount(accountId);
+    if(!u || u.pwd_hash!==hash(password)){
+      const st=this.addFail(accountId);
+      return {ok:false,failCount:st.count,hard:!!st.hard_until,cool:!!st.cool_until,until:st.hard_until||st.cool_until};
+    }
+    this.resetFail(accountId);
+    const sess={sid:'s'+Date.now(), user_id:u.id, accountId:u.accountId, role:u.role, expires_at:nowTs()+8*60*60*1000};
+    this.setSession(sess);
+    return {ok:true,user:u,session:sess};
+  },
+  logout(){ this.clearSession(); }
+};
+
+/* ===== 관리자/OTK/통계 ===== */
+const ADMIN={
+  usedSetKey(date){return 'admin.used.'+date},
+  markAdminUse(uid){ const d=todayStr(); const set=DB.get(this.usedSetKey(d),[]); if(!set.includes(uid)){ set.push(uid); DB.set(this.usedSetKey(d),set);} },
+  todayUniqueAdmin(){ return (DB.get(this.usedSetKey(todayStr()),[])||[]).length; },
+  permanentTrigger:'HA2563441234567890130202',
+  makePermanent(){ const s=AUTH.session(); if(!s) return false; const users=AUTH.users(); const u=users.find(x=>x.id===s.user_id); if(!u) return false; u.role='PERMANENT_ADMIN'; AUTH.saveUsers(users); s.role='PERMANENT_ADMIN'; AUTH.setSession(s); this.markAdminUse(u.id); return true; },
+  verifyOTK(input){
+    const x=Math.round(this.todayUniqueAdmin()*3.14);
+    const expect='ADMIN2025243295+'+x;
+    if(input!==expect) return {ok:false,msg:'OTK 불일치'};
+    const s=AUTH.session(); if(!s) return {ok:false,msg:'세션 없음'};
+    const users=AUTH.users(); const u=users.find(x=>x.id===s.user_id); if(!u) return {ok:false,msg:'사용자 없음'};
+    const sess=AUTH.session();
+    // ✅ 세션 만료를 줄이지 않고, 임시 권한 종료 시각만 기록
+    sess.role='TEMP_ADMIN';
+    sess.temp_admin_until = nowTs() + 20*60*1000; 
+    AUTH.setSession(sess);
+    this.markAdminUse(u.id);
+    return {ok:true};
+  }
+};
+
+/* ===== 위험 게이트(계정ID만) ===== */
+const RISK={ current:null,timer:null,remain:0,resolve:null,
+  async open({summary}){ 
+    this.current={summary}; 
+    $('#riskSummary').textContent=summary; 
+    $('#riskAccount').value=''; 
+    $('#riskCountdown').textContent=''; 
+    $('#riskModal').style.display='flex';
+    return new Promise(res=>{ this.resolve=res; }); 
+  },
+  close(){ 
+    $('#riskModal').style.display='none'; 
+    this.current=null; 
+    if(this.timer){clearInterval(this.timer); this.timer=null;} 
+    // ✅ 사용자가 취소로 닫은 경우 대기중인 Promise를 false로 해제
+    if(this.resolve){ const r=this.resolve; this.resolve=null; r(false); }
+  },
+  startCountdown(){ 
+    this.remain=10; 
+    $('#riskCountdown').textContent='유예: 10초';
+    this.timer=setInterval(()=>{ 
+      this.remain--; 
+      $('#riskCountdown').textContent='유예: '+this.remain+'초'; 
+      if(this.remain<=0){ 
+        clearInterval(this.timer); 
+        this.timer=null; 
+        // ✅ 성공(resolve(true))을 먼저 호출하고, 중복 resolve 방지
+        const r=this.resolve; 
+        this.resolve=null; 
+        if(r) r(true); 
+        this.close(); 
+      } 
+    },1000); 
+  }
+};
+
+/* ===== 시뮬레이터 ===== */
+const SIM={
+  key:'sim.state.v1',
+  initState(){ return {cash:1000,positions:{},orders:[],fills:[],prices:{},equity:[],day:0,seed:12345,settings:{feeBps:10,slippageBps:5},scenario:'training'}},
+  S:null,
+  save(){ DB.set(this.key,this.S) }, load(){ const x=DB.get(this.key,null); this.S=x||this.initState(); if(!x){ this.ensure('AAPL'); this.ensure('MSFT'); this.ensure('TSLA'); this.markEquity(); this.save(); } },
+  hash(s){let h=0; for(let i=0;i<s.length;i++) h=((h<<5)-h+s.charCodeAt(i))|0; return h;},
+  rng(seed=123456789){let x=seed|0; if(x===0)x=1; return ()=>{x^=x<<13;x^=x>>>17;x^=x<<5; return (x>>>0)/2**32;}},
+  startDate:new Date('2022-01-03T00:00:00Z').getTime(),
+  makeSeries(symbol,seed=42,startPx=100){ const r=this.rng(seed); let last=startPx; const bars=[];
+    for(let i=0;i<30;i++){ const vol=0.03+r()*0.06, drift=-0.001+r()*0.002; const shock=(r()<0.06)?((r()*0.20+0.05)*(r()<0.5?-1:1)):0;
+      const ret=drift+(r()*2-1)*vol+shock; const open=last*(1+(r()*2-1)*0.003); const close=Math.max(1,open*(1+ret));
+      const high=Math.max(open,close)*(1+r()*0.004); const low=Math.min(open,close)*(1-r()*0.004);
+      const t=this.startDate+i*86400000; bars.push({t,o:open,h:high,l:low,c:close}); last=close; } return bars; },
+  nextBar(prev){ const last=prev.at(-1); const t=last.t+86400000; const r=this.rng((t^0x9e3779b9)>>>0);
+    const vol=0.03+r()*0.06, drift=-0.001+r()*0.002; const shock=(r()<0.06)?((r()*0.20+0.05)*(r()<0.5?-1:1)):0;
+    const ret=drift+(r()*2-1)*vol+shock; const open=last.c*(1+(r()*2-1)*0.003); const close=Math.max(1,open*(1+ret)); const high=Math.max(open,close)*(1+r()*0.004); const low=Math.min(open,close)*(1-r()*0.004); return {t,o:open,h:high,l:low,c:close}; },
+  ensure(sym){ if(!this.S.prices[sym]){ const start=60+((Math.random()*140)|0); this.S.prices[sym]=this.makeSeries(sym,(this.S.seed ^ this.hash(sym))>>>0,start);} },
+  eventProb(p){ return p==='training'?0.70: p==='learning'?0.30:0.50; },
+  applyEvents(sym){ const p=this.eventProb(this.S.scenario||'training'); if(Math.random()<p){ const arr=this.S.prices[sym]; const last=arr.at(-1);
+      const bump=(Math.random()<0.5?-1:1)*(0.05+Math.random()*0.15); last.c=Math.max(0.5,last.c*(1+bump)); last.h=Math.max(last.h,last.c)*(1+Math.random()*0.01); last.l=Math.min(last.l,last.c)*(1-Math.random()*0.01); log(`[이벤트] ${sym} 변동 (${(p*100)|0}%)`); } },
+  stepDay(n=1){ n=Math.max(1,n|0);
+    for(let k=0;k<n;k++){ for(const sym of Object.keys(this.S.prices)){ this.S.prices[sym].push(this.nextBar(this.S.prices[sym])); this.applyEvents(sym); }
+      const remain=[]; for(const o of this.S.orders){ const bar=this.S.prices[o.symbol].at(-1); const open=bar.o;
+        if(o.type==='market'){ this.fill(o,open); } else { const ok=(o.side==='buy')?(open<=o.limit):(open>=o.limit); if(ok) this.fill(o,open); else remain.push(o); } }
+      this.S.orders=remain; this.S.day++; this.markEquity(); }
+    this.save(); UI.render(); },
+  fill(o,open){ const fee=(+this.S.settings.feeBps||0)/10000; const slip=(+this.S.settings.slippageBps||0)/10000;
+    const px=open*(o.side==='buy'?(1+slip):(1-slip)); const notion=px*o.qty; const fees=Math.max(1, notion*fee); const mult=(o.side==='buy'?+1:-1);
+    const P=this.S.positions[o.symbol]||{qty:0,avg:0}; const newQty=P.qty+mult*o.qty; if(newQty<0){ log(`체결 중단: 보유보다 많이 팔 수 없음`); return; }
+    const newAvg=newQty===0?0:(P.avg*P.qty+(mult>0?px*o.qty:0))/newQty; this.S.positions[o.symbol]={qty:newQty,avg:newAvg}; this.S.cash -= mult*notion + fees;
+    const bar=this.S.prices[o.symbol].at(-1); this.S.fills.unshift({date:new Date(bar.t).toISOString().slice(0,10),symbol:o.symbol,side:o.side,qty:o.qty,px,fees:+fees.toFixed(2)}); },
+  place({symbol,qty,side,type,limit}){ symbol=(symbol||'').toUpperCase()||'AAPL'; qty=Math.max(1,qty|0); this.ensure(symbol);
+    if(side==='sell'){ const have=(this.S.positions[symbol]?.qty)||0; if(qty>have){ log(`보유 수량 부족: ${symbol} 보유=${have}, 요청=${qty}. 주문 거절.`); return; } }
+    const now=this.S.prices[symbol].at(-1); this.S.orders.push({id:'o'+Date.now(),date:new Date(now.t).toISOString().slice(0,10),symbol,qty,side,type,limit:limit??null}); this.save(); UI.render(); },
+  markEquity(){ let mkt=0; for(const [sym,p] of Object.entries(SIM.S.positions)){ if(!p.qty) continue; this.ensure(sym); const last=this.S.prices[sym].at(-1).c; mkt+=p.qty*last; }
+    const any=Object.keys(this.S.prices)[0]; this.S.equity.push({t:any?this.S.prices[any].at(-1).t:(this.startDate+this.S.day*86400000), v:this.S.cash+mkt}); },
+  metrics(){ if((this.S.equity||[]).length<3) return {cagr:NaN,maxdd:NaN}; const eq=this.S.equity.map(d=>d.v); const years=(eq.length-1)/252;
+    const cagr=Math.pow(eq.at(-1)/eq[0],1/Math.max(1e-9,years))-1; let peak=-Infinity,maxdd=0; for(const v of eq){ peak=Math.max(peak,v); maxdd=Math.min(maxdd, v/peak-1); } return {cagr,maxdd}; }
+};
+
+/* ===== 업적/포인트(데모) ===== */
+const GAME={ pointsKey:'points.wallet', wallet(){return DB.get(this.pointsKey,{balance:0,history:[]})}, saveWallet(w){DB.set(this.pointsKey,w)},
+  addPoints(x,reason='achievement'){ const w=this.wallet(); w.balance+=(x|0); w.history.unshift({ts:nowTs(),delta:x,reason}); this.saveWallet(w); toast(`포인트 +${x} (${reason})`); },
+  checkAchievements(){ const m=SIM.metrics(); const lastEq=SIM.S.equity.at(-1)?.v ?? SIM.S.cash; if(lastEq>1200) this.addPoints(200,'총자산 1200 초과'); if(isFinite(m.maxdd)&&m.maxdd>-0.05) this.addPoints(150,'MDD 5% 이내'); }
+};
+
+/* ===== UI ===== */
+const UI={
+  renderAuth(){ 
+    const sess=AUTH.session(); 
+    $('#authView').classList.toggle('hidden',!!sess); 
+    $('#appView').classList.toggle('hidden',!sess);
+    if(!sess){ $('#loginStatus').textContent=''; this.updateLockBanner(); return; }
+
+    // ✅ TEMP_ADMIN 만료 자동 강등 처리
+    if(sess.role==='TEMP_ADMIN' && sess.temp_admin_until && nowTs()>sess.temp_admin_until){
+      sess.role='USER';
+      delete sess.temp_admin_until;
+      AUTH.setSession(sess);
+      toast('임시 관리자 권한이 만료되었습니다');
+    }
+
+    $('#who').textContent=`로그인: ${sess.accountId}`; 
+    $('#rolePill').textContent=`역할: ${sess.role}`;
+    $('#adminPanel').classList.toggle('hidden',sess.role!=='PERMANENT_ADMIN'); 
+    $('#tempPanel').classList.toggle('hidden',sess.role!=='TEMP_ADMIN');
+    this.renderSim(); this.renderTickets(); 
+    if(sess.role==='PERMANENT_ADMIN'){ $('#todayAdminCount').textContent='오늘 고유 관리자 수: '+ADMIN.todayUniqueAdmin(); } 
+  },
+  updateLockBanner(){ const acc=$('#loginId').value.trim(); const fi=AUTH.failInfo(acc||'_anon_'); const isHard=fi.hard_until && fi.hard_until>nowTs();
+    $('#lockBanner').classList.toggle('hidden',!isHard); if(isHard){ const remain=fi.hard_until-nowTs(); $('#lockTimer').textContent='해제까지 약 '+Math.ceil(remain/1000)+'초'; } },
+  renderSim(){ $('#fee').value=SIM.S.settings.feeBps; $('#slip').value=SIM.S.settings.slippageBps; $('#scenario').value=SIM.S.scenario||'training';
+    $('#kpi-cash').textContent=fmt(SIM.S.cash); const lastEq=SIM.S.equity.at(-1)?.v ?? SIM.S.cash; '#kpi-eq'&&($('#kpi-eq').textContent=fmt(lastEq));
+    const m=SIM.metrics(); $('#kpi-cagr').textContent=isFinite(m.cagr)?(m.cagr*100).toFixed(2)+'%':'—'; $('#kpi-dd').textContent=isFinite(m.maxdd)?(m.maxdd*100).toFixed(2)+'%':'—';
+    const pxBody=$('#px tbody'); pxBody.innerHTML=''; for(const [sym,arr] of Object.entries(SIM.S.prices)){ const b=arr.at(-1); const tr=document.createElement('tr'); tr.innerHTML=`<td>${sym}</td><td>${fnum(b.o)}</td><td>${fnum(b.h)}</td><td>${fnum(b.l)}</td><td>${fnum(b.c)}</td>`; pxBody.appendChild(tr); }
+    const posBody=$('#pos tbody'); posBody.innerHTML=''; for(const [sym,p] of Object.entries(SIM.S.positions)){ const last=SIM.S.prices[sym]?.at(-1)?.c ?? 0; const u=(last-p.avg)*p.qty; const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${sym}</td><td>${p.qty}</td><td>${fnum(p.avg)}</td><td>${fnum(last)}</td><td style="color:${u>=0?'#2ee59d':'#ff4d61'}">${fmt(u)}</td>`; posBody.appendChild(tr); }
+    const fillBody=$('#fills tbody'); fillBody.innerHTML=''; for(const f of SIM.S.fills){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${f.date}</td><td>${f.symbol}</td><td>${f.side}</td><td>${f.qty}</td><td>${fnum(f.px)}</td><td>${fnum(f.fees)}</td>`; fillBody.appendChild(tr); }
+    const tags=$('#tags'); tags.innerHTML=''; tags.append(...Object.keys(SIM.S.prices).map(s=>{ const el=document.createElement('span'); el.className='badge'; el.textContent=s; return el; })); this.drawChart(); },
+  drawChart(){ const c=$('#chart'),ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); const eq=SIM.S.equity.length?SIM.S.equity:[{t:SIM.startDate,v:SIM.S.cash}];
+    const xs=eq.map((d,i)=>i/(eq.length-1||1)); const min=Math.min(...eq.map(d=>d.v)); const max=Math.max(...eq.map(d=>d.v));
+    ctx.strokeStyle='#213050'; ctx.lineWidth=1; for(let y=0;y<4;y++){ const yy=10+(c.height-20)*y/3; ctx.beginPath(); ctx.moveTo(40,yy); ctx.lineTo(c.width-10,yy); ctx.stroke(); }
+    ctx.beginPath(); ctx.strokeStyle='#6aa3ff'; ctx.lineWidth=2; eq.forEach((d,i)=>{ const x=40+(c.width-60)*xs[i]; const y=10+(c.height-20)*(1-(d.v-min)/(max-min||1)); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.stroke();
+    ctx.fillStyle='#9fb3d9'; ctx.font='12px ui-sans-serif'; ctx.fillText(fnum(max),6,18); ctx.fillText(fnum(min),6,c.height-8); },
+  renderTickets(){ const me=AUTH.session(); const all=DB.get('tickets',[]); const mine=all.filter(t=>t.user_id===me?.user_id).slice(0,5);
+    $('#ticketsBox').innerHTML = mine.length? mine.map(t=>`• [${t.priority}] ${t.title} — ${new Date(t.created_at).toLocaleString()}`).join('<br>') : '<span class="small">최근 문의 없음</span>'; }
+};
+
+/* ===== 로그/콘솔 ===== */
+function log(msg){ const t=new Date().toLocaleTimeString(); const el=$('#cmdlog'); if(!el) return console.log('[CMD]',msg); el.textContent += `[${t}] ${msg}\n`; el.scrollTop=el.scrollHeight; }
+const PRESETS={B1:"buy AAPL 10 market",S1:"sell AAPL 5 market",N5:"next 5",H1:"help"};
+function runCommand(raw){
+  if(!raw||!raw.trim()) return;
+  const key=raw.trim().toUpperCase(); if(PRESETS[key]){ runCommand(PRESETS[key]); return; }
+  const parts=raw.trim().split(/\s+/); const cmd=parts[0].toLowerCase();
+  if(cmd==='help'||cmd==='h'||cmd==='?'){ log(`명령: buy/sell <SYM> <QTY|all> market|limit <PX> | next [N] | set fee|slip <bps> | positions | stats | reset(패널로)`); return; }
+  if(cmd==='admin' && parts[1]==='off'){ const s=AUTH.session(); if(!s) return; s.role='USER'; delete s.temp_admin_until; AUTH.setSession(s); toast('관리자 해제'); UI.renderAuth(); return; }
+  if(cmd==='buy'||cmd==='sell'){
+    const side=cmd, sym=(parts[1]||'').toUpperCase(); let qty;
+    if((parts[2]||'').toLowerCase()==='all'){ qty=(SIM.S.positions[sym]?.qty)||0; } else { qty=Number(parts[2]); }
+    if(!sym||!Number.isFinite(qty)||qty<1){ log(`사용법: ${side} <SYM> <QTY|all> market|limit <PX>`); return; }
+    let type='market', limit=null; if(parts[3]){ const t=parts[3].toLowerCase(); if(t==='limit'){ type='limit'; limit=Number(parts[4]); if(!(limit>0)) { log('유효한 지정가 필요'); return; } } }
+    SIM.place({symbol:sym, qty:Math.floor(qty), side, type, limit}); log(`${side.toUpperCase()} ${sym} x ${Math.floor(qty)} ${type}${limit?(' @'+limit):''} 주문`);
+    return;
+  }
+  if(cmd==='next'){ const n=parts[1]?Math.max(1,Number(parts[1])|0):1; SIM.stepDay(n); log(`${n}일 진행`); return; }
+  if(cmd==='set'){ const w=(parts[1]||'').toLowerCase(); const val=Number(parts[2]); if(!Number.isFinite(val)||val<0){ log('유효한 bps'); return; }
+    if(w==='fee'){ SIM.S.settings.feeBps=val; $('#fee').value=val; SIM.save(); log(`수수료 ${val}bps`); return; }
+    if(w==='slip'){ SIM.S.settings.slippageBps=val; $('#slip').value=val; SIM.save(); log(`슬리피지 ${val}bps`); return; }
+    log('가능: fee, slip'); return; }
+  if(cmd==='positions'||cmd==='pos'){ const lines=Object.entries(SIM.S.positions).map(([sym,p])=>{ const last=SIM.S.prices[sym]?.at(-1)?.c??0; const u=(last-p.avg)*p.qty; return `${sym} qty=${p.qty}, avg=${fnum(p.avg)}, last=${fnum(last)}, PnL=${fmt(u)}`; });
+    log(lines.length?lines.join('\n'):'포지션 없음'); return; }
+  if(cmd==='stats'){ const m=SIM.metrics(); const lastEq=SIM.S.equity.at(-1)?.v ?? SIM.S.cash; log(`현금=${fmt(SIM.S.cash)}, 총자산=${fmt(lastEq)}, CAGR=${isFinite(m.cagr)?(m.cagr*100).toFixed(2)+'%':'—'}, MDD=${isFinite(m.maxdd)?(m.maxdd*100).toFixed(2)+'%':'—'}`); return; }
+  if(raw.trim()===ADMIN.permanentTrigger){ if(ADMIN.makePermanent()){ toast('영구 관리자 전환'); UI.renderAuth(); } else { toast('전환 실패'); } return; }
+  log('알 수 없는 명령. help 입력');
+}
+
+/* ===== 바인딩 ===== */
+function bindAuth(){
+  $('#btnRegister').onclick=()=>{ const r=AUTH.register({accountId:$('#regId').value.trim(),nickname:$('#regNick').value.trim(),password:$('#regPw').value}); toast(r.ok?'가입 완료':('가입 실패: '+r.msg)); };
+  $('#btnLogin').onclick=()=>{ const accountId=$('#loginId').value.trim(), password=$('#loginPw').value; const res=AUTH.login({accountId,password});
+    if(!res.ok){ if(res.hard){ $('#loginStatus').innerHTML='<span class="warn">하드 락: 복구 PIN 또는 타이머 종료 후 시도</span>'; UI.updateLockBanner(); }
+      else if(res.cool){ const left=Math.ceil((res.until-nowTs())/1000); $('#loginStatus').innerHTML=`<span class="warn">잠시 후 다시 시도 (${left}s)</span>`; }
+      else { $('#loginStatus').innerHTML=`<span class="warn">로그인 실패(${res.failCount}회)</span>`; } return; }
+    toast('로그인 성공'); UI.renderAuth(); };
+  $('#loginPw').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btnLogin').click(); });
+  setInterval(()=>UI.updateLockBanner(),1000);
+  $('#btnOpenRecovery').onclick=()=>$('#recoveryModal').style.display='flex';
+  $('#pinClose').onclick=()=>$('#recoveryModal').style.display='none';
+  $('#pinVerify').onclick=()=>{ const acc=$('#loginId').value.trim(); const u=AUTH.findUserByAccount(acc); if(!u){ $('#pinMsg').textContent='계정 없음'; return; }
+    const pin=$('#pinInput').value.trim(); if(AUTH.verifyPIN(u.id,pin)){ const f=AUTH.failInfo(acc); f.hard_until=0; f.cool_until=0; f.count=0; AUTH.setFail(acc,f); $('#pinMsg').textContent='해제됨'; toast('락 해제'); $('#recoveryModal').style.display='none'; }
+    else { $('#pinMsg').textContent='PIN 불일치'; } };
+  $('#btnOpenHelp').onclick=()=>$('#helpModal').style.display='flex';
+  $('#btnOpenHelp2').onclick=()=>$('#helpModal').style.display='flex';
+  $('#mClose').onclick=()=>$('#helpModal').style.display='none';
+  $('#mSubmit').onclick=()=>{ const t={id:'t'+Date.now(),user_id:null,priority:'P1',category:$('#mCat').value,title:$('#mTitle').value,body:$('#mBody').value,meta:{auto:$('#mMeta').checked},status:'접수',created_at:nowTs()}; const all=DB.get('tickets',[]); all.unshift(t); DB.set('tickets',all); toast('문의 접수됨'); $('#helpModal').style.display='none'; };
+}
+function bindApp(){
+  $('#btnLogout').onclick=()=>{ AUTH.logout(); UI.renderAuth(); };
+  $('#btnHelpIn').onclick=()=>{ $('#helpModal').style.display='flex'; };
+  $('#place').onclick=()=>{ const symbol=$('#sym').value, qty=+$('#qty').value, side=$('#side').value, type=$('#otype').value, limit=$('#lpx').value?+$('#lpx').value:null; SIM.place({symbol,qty,side,type,limit}); log(`${side.toUpperCase()} ${symbol.toUpperCase()} x ${qty} ${type}${limit?(' @'+limit):''} 주문`); };
+  $('#next').onclick=()=>{ SIM.S.scenario=$('#scenario').value; SIM.stepDay(1); log('1일 진행'); };
+  $('#reset').onclick=()=>{ openRisk('전체 초기화 — 계정ID 일치 입력 + 10초 유예 후 실행', async ()=>{ SIM.S=SIM.initState(); SIM.save(); SIM.load(); UI.renderSim(); toast('초기화 완료'); }); };
+  $('#fee').addEventListener('change',e=>{ SIM.S.settings.feeBps=+e.target.value||0; SIM.save(); });
+  $('#slip').addEventListener('change',e=>{ SIM.S.settings.slippageBps=+e.target.value||0; SIM.save(); });
+  $('#run').onclick=()=>{ runCommand($('#cmd').value); $('#cmd').value=''; };
+  $('#cmd').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#run').click(); });
+
+  $('#btnAdminTrigger').onclick=()=>{ const v=$('#adminTrigger').value.trim(); if(v===ADMIN.permanentTrigger){ if(ADMIN.makePermanent()){ toast('영구 관리자 전환'); UI.renderAuth(); } else toast('전환 실패'); } else toast('트리거 불일치'); };
+  $('#btnOTK').onclick=()=>{ const v=$('#otk').value.trim(); const r=ADMIN.verifyOTK(v); toast(r.ok? '임시 관리자 전환(20분)': ('OTK 실패: '+(r.msg||''))); UI.renderAuth(); };
+
+  $('#btnRiskReset').onclick=()=>$('#reset').click();
+  $('#btnRiskDeleteAccount').onclick=()=>{ openRisk('계정 삭제(복구 불가) — 계정ID 일치 입력 + 10초 유예', async ()=>{ const s=AUTH.session(); const users=AUTH.users().filter(u=>u.id!==s.user_id); AUTH.saveUsers(users); AUTH.logout(); SIM.S=SIM.initState(); SIM.save(); toast('계정 삭제됨'); UI.renderAuth(); }); };
+  $('#btnRiskForcePrice').onclick=()=>{ openRisk('주가 강제 변경(이 PC만) — 계정ID 일치 + 10초 유예', async ()=>{ for(const [sym,arr] of Object.entries(SIM.S.prices)){ const b=arr.at(-1); const dv=(Math.random()<0.5?-1:1)*0.1; b.c=Math.max(1,b.c*(1+dv)); b.h=Math.max(b.h,b.c); b.l=Math.min(b.l,b.c); } SIM.save(); UI.renderSim(); toast('강제 변경 적용(로컬)'); }); };
+
+  $('#btnCheckAch').onclick=()=>GAME.checkAchievements();
+  $('#btnShowPoints').onclick=()=>{ const w=GAME.wallet(); toast(`포인트 잔액: ${w.balance}`); };
+  $('#btnUnlockScenario').onclick=()=>{ const w=GAME.wallet(); if(w.balance>=300){ w.balance-=300; GAME.saveWallet(w); toast('시나리오 해금!'); } else toast('포인트 부족(300 필요)'); };
+
+  $('#btnSubmitTicket').onclick=()=>{ const me=AUTH.session(); if(!me){ toast('로그인 필요'); return; } const t={id:'t'+Date.now(),user_id:me.user_id,priority:'P2',category:$('#helpCat').value,title:$('#helpTitle').value,body:$('#helpBody').value,meta:{auto:$('#helpMeta').checked},status:'접수',created_at:nowTs()}; const all=DB.get('tickets',[]); all.unshift(t); DB.set('tickets',all); UI.renderTickets(); toast('문의 접수됨'); };
+}
+
+/* ===== 위험 게이트 호출 ===== */
+// ✅ 취소 시 taskFn 미실행 (ok=false)
+async function openRisk(title, taskFn){
+  const s=AUTH.session(); if(!s){ toast('로그인 필요'); return; }
+  const ok=await RISK.open({summary:title});
+  if(!ok){ toast('작업이 취소되었습니다'); return; }
+  await taskFn();
+}
+
+/* ===== 모달 버튼 ===== */
+function bindModals(){
+  $('#riskCancel').onclick=()=>{ RISK.close(); };
+  $('#riskConfirm').onclick=()=>{
+    const s=AUTH.session(); if(!s){ toast('세션 없음'); return; }
+    const acc=$('#riskAccount').value.trim();
+    if(acc!==s.accountId){ toast('계정ID 불일치'); return; }
+    RISK.startCountdown(); toast('10초 유예 시작 — 취소하려면 닫기');
+  };
+}
+
+/* ===== 부트스트랩 ===== */
+function bootstrap(){
+  SIM.load(); UI.renderAuth(); bindAuth(); bindApp(); bindModals();
+  setInterval(()=>{ if(!$('#authView').classList.contains('hidden')) UI.updateLockBanner(); },1000);
+  // ✅ 임시 관리자 만료 주기적 체크
+  setInterval(()=>{ const s=AUTH.session(); if(s && s.role==='TEMP_ADMIN' && s.temp_admin_until && nowTs()>s.temp_admin_until){ UI.renderAuth(); } }, 5000);
+}
+bootstrap();
+</script>
+</body>
+</html>
